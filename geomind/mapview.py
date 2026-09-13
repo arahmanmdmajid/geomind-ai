@@ -153,7 +153,7 @@ def answer_layer(result: dict | None, pin, theme: str) -> tuple[folium.FeatureGr
 # ---------------------------------------------------------------------
 # Choosing a view (centre + zoom) that fits some points
 # ---------------------------------------------------------------------
-def view_for_bounds(west, south, east, north, width_px=900, height_px=620, pad=0.15, max_zoom=17):
+def view_for_bounds(west, south, east, north, width_px=700, height_px=540, pad=0.15, max_zoom=17):
     """Centre (lat, lon) and zoom so that the box fits in the map.
 
     Web maps use the Web Mercator projection: at zoom z the whole world is 256 * 2^z pixels
@@ -178,6 +178,7 @@ def view_for_result(area: Area, result: dict):
     """Zoom to the answer: the listed hits for 'find', otherwise the whole area."""
     if result["op"] == "find" and result.get("shown"):
         pts = [i["coords"] for i in result["shown"]]
+        pts += [i["near"] for i in result["shown"] if i.get("near")]   # the other end of each dashed line
         ref = result["ref"]
         if ref["kind"] == "point":
             pts.append(ref["coords"])
@@ -190,5 +191,5 @@ def view_for_result(area: Area, result: dict):
         if len(pts) == 1:
             return [pts[0][1], pts[0][0]], 16
         lons, lats = [p[0] for p in pts], [p[1] for p in pts]
-        return view_for_bounds(min(lons), min(lats), max(lons), max(lats), pad=0.1)
+        return view_for_bounds(min(lons), min(lats), max(lons), max(lats), pad=0.15)
     return view_for_area(area)
