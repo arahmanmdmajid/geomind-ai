@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+pip.log
+# Never commit API keys: Streamlit Community Cloud stores them in the app's Secrets instead.
+.streamlit/secrets.toml
+.claude/

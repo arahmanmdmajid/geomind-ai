@@ -1,0 +1,11 @@
+streamlit>=1.46
+streamlit-folium>=0.25
+folium>=0.17
+geopandas>=1.0
+shapely>=2.0
+pyproj>=3.6
+numpy
+requests
+groq>=0.11
+streamlit-searchbox>=0.1.20
+streamlit-geolocation>=0.0.10
