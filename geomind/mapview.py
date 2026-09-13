@@ -93,6 +93,9 @@ def answer_layer(result: dict | None, pin, theme: str) -> tuple[folium.FeatureGr
         col = C["near"] if result["relation"] == "within" else C["isolate"] if result["relation"] == "beyond" else C["accent"]
         if ref["kind"] == "point":
             dot(ref["coords"], C["accent"], C, radius=7, tooltip=ref["label"]).add_to(fg)
+            if ref["label"] != "your map pin":          # the pin already has its own legend row
+                legend.append({"color": C["accent"], "label": ref["label"][0].upper() + ref["label"][1:],
+                               "round": True})
             if d:
                 folium.Circle(_latlon(ref["coords"]), radius=d, color=C["accent"], weight=1.5, dash_array="6 5",
                               fill=True, fill_opacity=0.04, interactive=False).add_to(fg)
@@ -175,10 +178,17 @@ def view_for_result(area: Area, result: dict):
     """Zoom to the answer: the listed hits for 'find', otherwise the whole area."""
     if result["op"] == "find" and result.get("shown"):
         pts = [i["coords"] for i in result["shown"]]
-        if result["ref"]["kind"] == "point":
-            pts.append(result["ref"]["coords"])
+        ref = result["ref"]
+        if ref["kind"] == "point":
+            pts.append(ref["coords"])
+            if result.get("d"):
+                # include the whole search circle: d metres north/south/east/west of the reference point
+                lon, lat = ref["coords"]
+                dlat = result["d"] / 111320
+                dlon = result["d"] / (111320 * max(math.cos(math.radians(lat)), 0.1))
+                pts += [(lon - dlon, lat - dlat), (lon + dlon, lat + dlat)]
         if len(pts) == 1:
             return [pts[0][1], pts[0][0]], 16
         lons, lats = [p[0] for p in pts], [p[1] for p in pts]
-        return view_for_bounds(min(lons), min(lats), max(lons), max(lats), pad=0.3)
+        return view_for_bounds(min(lons), min(lats), max(lons), max(lats), pad=0.1)
     return view_for_area(area)

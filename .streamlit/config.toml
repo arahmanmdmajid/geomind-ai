@@ -1,0 +1,7 @@
+# Streamlit settings.
+# We deliberately do NOT set theme colours here: any [theme] option turns the app into a fixed
+# custom (light) theme, which would disable the automatic Light/Dark switch. Users can pick
+# Light / Dark / System in the ⋮ menu → Settings, and the map basemap follows that choice.
+
+[server]
+runOnSave = false
