@@ -11,7 +11,8 @@ can compare it side by side with the original JavaScript app:
 | Where | Hugging Face Space `GeoMind-AI/geomind-ai` (static page) | Streamlit Community Cloud |
 | Map | Leaflet + Turf.js | Folium (Leaflet) via `streamlit-folium` + GeoPandas/Shapely |
 | AI calls | Browser → Cloudflare Worker → Groq | Python server → Groq (key in Streamlit Secrets) |
-| URL | https://geomind-ai-geomind-ai.static.hf.space | _add the Streamlit Cloud URL here after deploying_ |
+| URL | https://geomind-ai-geomind-ai.static.hf.space | https://geomind-ai.streamlit.app |
+| First load | instant (static page) | ~20 s on a warm Streamlit server; longer after the app has been asleep |
 
 ## How it works
 
@@ -101,7 +102,10 @@ and compares the chosen blocks with `tests/router_raw.json`.
    GROQ_API_KEY = "your-groq-key"
    ```
 4. **Deploy**. The first build installs GeoPandas and takes a few minutes; later cold starts are faster.
-5. Put the app URL in the table at the top of this README.
+5. Put the app URL in the table at the top of this README (done: https://geomind-ai.streamlit.app).
+
+Free Community Cloud apps go to sleep after a period without visitors; the first visitor then
+clicks "Yes, get this app back up" and waits for it to restart.
 
 ## Differences from the JavaScript app (deliberate)
 
