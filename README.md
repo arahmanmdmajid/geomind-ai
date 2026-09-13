@@ -40,7 +40,7 @@ picks the same blocks and the computed text is shown; the tag then says `keyword
 
 ### Map features
 - Click the map to drop a **pin** (“schools within 1 km of this location”).
-- **Near me:** tap the 📍 button in the sidebar. If you are outside the loaded area, the app finds
+- **Near me:** tap the 📍 button at the top right. If you are outside the loaded area, the app finds
   your neighbourhood (Nominatim reverse geocoding), loads it and answers from your position. Without
   a location it answers from your pin or the area centre and says so.
 - Light/dark basemaps (Esri) follow the Streamlit theme (⋮ menu → Settings). Chat history is kept.
@@ -49,7 +49,7 @@ picks the same blocks and the computed text is shown; the tag then says `keyword
 ## Project layout
 
 ```
-app.py                 the Streamlit UI (sidebar chat + map)
+app.py                 the Streamlit UI (top bar, map on the left, chat on the right)
 geomind/data.py        featured extracts, Photon search, Nominatim, live Overpass (raced mirrors)
 geomind/analysis.py    find / coverage / distance_grid / summary with GeoPandas in UTM
 geomind/ai.py          Groq client, router prompt, normalize() guard rails, keyword fallback, explain

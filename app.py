@@ -32,8 +32,8 @@ from geomind import ai, analysis, data, mapview, suggest
 # set_page_config MUST be the first Streamlit command, or Streamlit raises an error.
 st.set_page_config(page_title="GeoMind AI", page_icon="🗺️", layout="wide")
 
-# A little CSS: a wider sidebar so the chat is comfortable to read.
-st.markdown("<style>section[data-testid='stSidebar']{min-width:400px}</style>", unsafe_allow_html=True)
+# A little CSS: less empty space above the page, so the map and chat fit on one screen.
+st.markdown("<style>.block-container{padding-top:2.2rem;padding-bottom:1rem}</style>", unsafe_allow_html=True)
 
 
 # =====================================================================
@@ -209,7 +209,7 @@ def process_question(q, echo=True):
         if key:
             on_area_loaded(cached_featured(key))
         elif not about_me:
-            say("Choose a location first — search in the sidebar or tap a featured district, "
+            say("Choose a location first — use the search box at the top or tap a featured district, "
                 "or ask about schools near you.")
             return
 
@@ -224,15 +224,15 @@ def process_question(q, echo=True):
         if state == "no_location":
             S.pending_me_question = q       # answered again automatically once the location arrives
             if S.area is None:
-                say("I need your location to answer that. Tap the 📍 button under “Your location” in the "
-                    "sidebar and allow access — or search for an area instead.")
+                say("I need your location to answer that. Tap the 📍 button at the top right and allow "
+                    "access — or search for an area instead.")
                 return
         elif S.area is None:
             say("I couldn't load map data around your location. Search for an area instead.")
             return
 
     if handle_place(p.get("place")) == "unknown":
-        say(f"I don't have {p['place']} loaded. Search for it in the sidebar, then ask again.")
+        say(f"I don't have {p['place']} loaded. Search for it at the top, then ask again.")
         return
     if intent["operation"] == "unsupported":
         say(f"I can answer questions about schools and healthcare in {S.area.name}: counts, distances, "
@@ -285,14 +285,17 @@ if S.queued_question:
 
 
 # =====================================================================
-# 5. SIDEBAR — pick an area, your location, and the chat
+# 5. TOP BAR — title, search, featured districts, your location
 # =====================================================================
+# No sidebar: everything fits on one screen, like the JavaScript app.
 theme = "dark" if (st.context.theme.type == "dark") else "light"
 
-with st.sidebar:
-    st.title("🗺️ GeoMind AI")
-    st.caption("Plain English → map answer. Every number is computed by GeoPandas, not invented by the AI.")
+title_col, search_col, featured_col, geo_col = st.columns([0.9, 1.6, 1.3, 0.35], vertical_alignment="center")
 
+with title_col:
+    st.markdown("### 🗺️ GeoMind AI")
+
+with search_col:
     # --- search with live suggestions (Photon) ---
     def search_places(term):
         try:
@@ -308,25 +311,16 @@ with st.sidebar:
     if S.queued_area:            # a suggestion was just picked -> rerun so it loads at the top
         st.rerun()
 
-    # --- featured districts ---
-    st.caption("Featured:")
-    with st.container(horizontal=True):          # buttons side by side, wrapping when narrow
+with featured_col:
+    # --- featured districts: buttons side by side ---
+    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+        st.caption("Featured:")
         for key, d in data.featured_raw().items():
             st.button(d["name"].split(",")[0].replace(" District", ""), key=f"feat_{key}",
                       on_click=queue_featured, args=(key,))
 
-    # --- status badge ---
-    if S.area:
-        ns, nf = len(S.area.schools), len(S.area.facilities)
-        dot_ = "🟢" if S.area.source == data.OVERTURE else "🟠"
-        if ns == 0 or nf == 0:
-            dot_ = "🔴"
-        st.caption(f"{dot_} **{S.area.name}** · {S.area.source} · {ns} schools · {nf} medical facilities")
-        if S.area.source == data.LIVE_OSM:
-            st.caption("Live OpenStreetMap coverage varies by city; sparse mapping means lower counts.")
-
-    # --- browser geolocation ---
-    st.caption("Your location (for “near me” questions):")
+with geo_col:
+    # --- browser geolocation: a 📍 button; the browser asks for permission ---
     geo = streamlit_geolocation()
     if geo and geo.get("latitude") is not None:
         reading = (round(geo["longitude"], 6), round(geo["latitude"], 6))
@@ -339,35 +333,49 @@ with st.sidebar:
                 S.queued_question = None
                 process_question(q, echo=False)
             st.rerun()
-    if S.me:
-        st.caption(f"📍 Using your location ({S.me[1]:.4f}, {S.me[0]:.4f})")
 
-    st.divider()
-    AI_LABEL = "Groq · " + ai.MODEL if client else "keyword router (no GROQ_API_KEY)"
-    st.caption(f"Ask GeoMind · AI: {AI_LABEL}")
+# --- status line: what is loaded, where the data came from, which AI is answering ---
+status = []
+if S.area:
+    ns, nf = len(S.area.schools), len(S.area.facilities)
+    dot_ = "🔴" if ns == 0 or nf == 0 else "🟢" if S.area.source == data.OVERTURE else "🟠"
+    status.append(f"{dot_} **{S.area.name}** · {S.area.source} · {ns} schools · {nf} medical facilities")
+    if S.area.source == data.LIVE_OSM:
+        status.append("live OpenStreetMap coverage varies by city")
+else:
+    status.append("Pick a featured district or search for an area to begin")
+status.append("📍 using your location" if S.me else "📍 button = share your location for “near me”")
+status.append("AI: Groq · " + ai.MODEL if client else "AI: keyword router (no GROQ_API_KEY)")
+st.caption("  ·  ".join(status))
 
-    # --- chat history ---
-    chat = st.container(height=380, autoscroll=True)   # autoscroll keeps the newest message in view
+
+# =====================================================================
+# 6. MAIN AREA — map on the left, chat on the right (always visible, no scrolling)
+# =====================================================================
+MAP_HEIGHT = 540      # fits a 768 px-tall laptop screen together with the top bar
+map_col, chat_col = st.columns([0.62, 0.38], gap="medium")
+
+# ---------------- the chat panel ----------------
+with chat_col:
+    # Chat history in a fixed-height box. autoscroll keeps the newest message in view.
+    chat = st.container(height=MAP_HEIGHT - 230, autoscroll=True)
     for msg in S.messages:
         with chat.chat_message(msg["role"]):
             st.write(msg["content"])
             if msg.get("tag"):
-                st.caption(f"`{msg['tag']}`")
+                st.caption(f"`{msg['tag']}`")   # the analysis block that produced this answer
 
-    # --- suggestion buttons (run immediately) ---
-    for i, text in enumerate(S.chips):
-        st.button(text, key=f"chip_{i}_{text}", on_click=queue_question, args=(text,), width="stretch")
-
+    # The question box sits right under the history, so it is always on screen.
     st.chat_input("Ask about schools & healthcare…", key="chat_box", on_submit=on_chat_submit)
 
+    # Suggested questions: small buttons that run immediately when clicked.
+    st.caption("Try:")
+    with st.container(horizontal=True, gap="small"):
+        for i, text in enumerate(S.chips):
+            st.button(text, key=f"chip_{i}_{text}", on_click=queue_question, args=(text,))
 
-# =====================================================================
-# 6. MAIN AREA — the map
-# =====================================================================
-if S.area:
-    st.subheader(S.area.name)
-else:
-    st.subheader("Pick an area to begin")
+# ---------------- the map ----------------
+map_col_ctx = map_col.container()
 
 C = mapview.colors(theme)
 fg, extra_legend = mapview.answer_layer(S.answer, S.pin, theme)
@@ -380,14 +388,15 @@ chips_html = " ".join(
     f"<i style='width:10px;height:10px;display:inline-block;background:{row['color']};"
     f"border-radius:{'50%' if row.get('round') else '2px'}'></i>{row['label']}</span>"
     for row in legend)
-st.markdown(chips_html, unsafe_allow_html=True)
+map_col_ctx.markdown(chips_html, unsafe_allow_html=True)
 
 center, zoom = S.view
 # The base map is only rebuilt when the area or theme changes; answers + pin arrive through
 # `feature_group_to_add`, and centre/zoom are updated in place, so clicks keep your view.
 m = mapview.base_map(S.area, theme, center, zoom)
-out = st_folium(m, key="map", height=620, use_container_width=True, center=center, zoom=zoom,
-                feature_group_to_add=fg, returned_objects=["last_clicked"])
+with map_col_ctx:
+    out = st_folium(m, key="map", height=MAP_HEIGHT, use_container_width=True, center=center, zoom=zoom,
+                    feature_group_to_add=fg, returned_objects=["last_clicked"])
 
 # Map click -> drop a pin
 click = (out or {}).get("last_clicked")
@@ -400,6 +409,6 @@ if click and S.area:
         st.rerun()
 
 if S.answer:
-    st.caption(f"Latest answer (computed): {S.answer['text']}")
-st.caption("Data: Overture Maps (featured districts) and OpenStreetMap contributors (live areas). "
+    map_col_ctx.caption(f"Latest answer (computed): {S.answer['text']}")
+map_col_ctx.caption("Data: Overture Maps (featured districts) and OpenStreetMap contributors (live areas). "
            "Basemap tiles © Esri. Search by Photon, boundaries by Nominatim.")
