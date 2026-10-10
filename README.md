@@ -392,3 +392,7 @@ clicks "Yes, get this app back up" and waits for it to restart.
   asked before sharing the location is answered again automatically once it arrives.
 
 Data: Overture Maps Foundation, © OpenStreetMap contributors. Tiles © Esri.
+
+## License
+
+Code: [MIT](LICENSE). Map data keeps its own licenses, listed above.
